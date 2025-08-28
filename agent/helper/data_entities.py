@@ -1,0 +1,32 @@
+from dataclasses import dataclass, field
+from typing import Optional
+from livekit.agents import JobContext, BackgroundAudioPlayer
+
+@dataclass
+class UserData:
+    "Class to store user and service data during the call"
+    ctx: Optional[JobContext] = None
+
+    # customer information
+    full_name: Optional[str] = None
+    mobile_number: Optional[str] = None
+    pincode: Optional[str] = str
+    hearing_aid_done_in_past: Optional[str] = None
+    interested_in_hearing_aid_test: Optional[str] = None
+
+    def is_identified(self) -> bool:
+        """Check if the customer is identified."""
+        return self.full_name is not None
+    
+    def summarize(self) -> str:
+        """Return a summary of the customer information."""
+        return f"""Customer Information Summary:            
+            Full Name: {self.full_name or "Not Provided"}
+            Mobile Number: {self.mobile_number or "Not Provided"}
+            Car Model: {self.car_model or "Not Provided"}
+            Car Make Year: {self.car_make_year or "Not Provided"}
+            Approximate Run: {self.approximate_run or "Not Provided"}
+            Emirate: {self.emirate or "Not Provided"}
+            Location: {self.location or "Not Provided"}
+            Service Requested: {self.service_requested or "Not Provided"}"""
+

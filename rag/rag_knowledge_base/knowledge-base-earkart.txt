@@ -1,0 +1,233 @@
+EarKART Knowledge Base (RAG-Ready Format)
+Source: EarKART KB v1
+Versioned: July 23, 2025
+
+Modular FAQs
+id: faq.q1_walkin_allowed
+type: faq
+question: You provide me details I will go on my own whenever I want?
+answer: To get earKART benefits, you need to book an appointment through us. Once the appointment is booked, the clinic will give exclusive time to you only.
+tags: [appointment, walk-in, benefits]
+
+id: faq.q2_discount
+type: faq
+question: I just need to know what is the discount you can give?
+answer: EarKART does not directly sell hearing aids. If you provide a quotation, we can discuss with our partner clinics and try to match it. Plus, we offer additional benefits up to ₹25,000 exclusively for earKART’s patients.
+tags: [discount, pricing, benefits]
+
+id: faq.q3_free_visit
+type: faq
+question: I want free visit only?
+answer: Allow me some time to check if we have any clinic that provides free visits. If not, there may be charges.
+tags: [free visit, charges, clinic]
+
+id: faq.q4_insurance_vs_warranty
+type: faq
+question: I am already getting 2 years warranty I don’t need your 1-year Insurance.
+answer: Warranty covers only manufacturing defects. Theft and accidental physical damage are not covered under warranty but are covered under our insurance.
+tags: [insurance, warranty, coverage]
+
+id: faq.q5_uv_dehumidifier_kit
+type: faq
+question: I want to purchase rechargeable hearing aid. Is the UV dehumidifier kit of any use?
+answer: You can use the UV dehumidifier kit with rechargeable hearing aids to help absorb moisture and sweat.
+tags: [dehumidifier, rechargeable hearing aid, accessory]
+
+id: faq.q6_where_got_number
+type: faq
+question: From where did you get my number?
+answer: You might have raised a query on one of our social media platforms; we received your number from there.
+tags: [lead source, user data]
+
+id: faq.q7_which_brand_good
+type: faq
+question: Which brand is good?
+answer: Our partner clinics have all the top brands. We suggest taking a trial at the clinic and then deciding which brand suits you best.
+tags: [hearing aid brand, trial]
+
+id: faq.q8_benefits_in_writing
+type: faq
+question: Can you provide me EarKART benefit details in writing?
+answer: Absolutely. Please share your email or WhatsApp number so I can send all details.
+tags: [benefits, communication, request]
+
+id: faq.q9_company_age
+type: faq
+question: How old is your Company?
+answer: We started our operations in October 2021. We are a leading digital platform for hearing aid needs, with a dealer network of over 1,000 clinics PAN India.
+tags: [company info, experience, network]
+
+id: faq.q10_competitor_visit_trial
+type: faq
+question: Hear.com or Amplifon etc provide free visit and trial?
+answer: We cannot comment about other companies, but can explain the exclusive advantages you'll get through earKART.
+tags: [competitors, comparison, free trial]
+
+id: faq.q11_office_location
+type: faq
+question: Where is your office?
+answer: Our head office is in Noida. Our partner clinics are located across India.
+tags: [location, office, network]
+
+id: faq.q12_benefits_receipt_process
+type: faq
+question: How will I receive benefits?
+answer:
+
+After purchase, download the earKART Consumer App and upload your invoice.
+
+50% of the invoice value will be reflected in your wallet instantly.
+
+Remaining benefits will be delivered after 15 working days if you do not return the hearing aids.
+
+Dehumidifier or 4 months’ battery supply will be dispatched to your home. Details must be provided within 15 days of purchase.
+tags: [benefits, process, after purchase]
+
+id: faq.q13_existing_user_offer
+type: faq
+question: I already have a hearing aid?
+answer: No problem! Install the earKART Consumer APP and upload your invoice to receive instant 50% credit in your wallet and one-year insurance against loss and damage.
+tags: [existing user, insurance, wallet credit]
+
+id: faq.q14_dehumidifier_brand
+type: faq
+question: Dehumidifier is of which company or which brand?
+answer: OSEL - the dehumidifier we provide for free is of OSEL brand which is earkart cerified.
+tags: [dehumidifier, brand, company]
+
+Policy Chunks — Insurance
+id: policy.insurance.eligibility
+type: policy
+title: Eligibility Criteria for Insurance Benefit
+content: Insurance benefits are provided for customers with an invoice value above ₹10,000. You must provide invoice details, address, and explicit consent within 15 days of purchase to avail the benefits.
+tags: [insurance, eligibility, invoice, consent]
+
+id: policy.insurance.coverage
+type: policy
+title: What Does Insurance Cover?
+content: Coverage includes:
+
+Fire and AOG perils
+
+Theft & Burglary
+
+Electrical & Mechanical breakdown (caused by external means)
+
+Accidental Damage / Liquid Damage
+Coverage subject to 3rd party insurer’s terms; details are shared at the time of insurance.
+tags: [insurance, coverage, third-party, damage]
+
+id: policy.insurance.loss_not_covered
+type: policy
+title: Loss Not Covered
+content: General loss is not covered.
+tags: [insurance, exclusion]
+
+id: policy.insurance.no_questions_asked
+type: policy
+title: Language Restriction in Insurance
+content: Do not use “no questions asked” or similar terms when describing the insurance policy.
+tags: [insurance, communication, terminology]
+
+id: policy.insurance.dispatch_window
+type: policy
+title: Dispatch Timeline for Benefits
+content: All additional benefits will be dispatched within 30 days after receiving clear invoice details and address.
+tags: [dispatch, timeline, benefits]
+
+id: policy.insurance.claim_procedure
+type: policy
+title: FIR Requirement for Theft Claims
+content: For theft/burglary claims (invoice value over ₹50,000), the customer must file an FIR.
+tags: [insurance, claim, theft, FIR]
+
+id: policy.insurance.benefit_request_window
+type: policy
+title: Deadline for Benefit Requests
+content: Any benefit request made more than 15 days after purchase will not be entertained.
+tags: [benefit, timeline, eligibility]
+
+id: policy.communication_crisp
+type: policy
+title: Communication Guidelines
+content: All communications should be crisp and clear; avoid ambiguity.
+tags: [communication, policy]
+
+Glossary/Definitions
+id: glossary.earkart_benefit
+type: glossary
+term: EarKART Benefit
+definition: The set of exclusive offers and advantages provided by EarKART after hearing aid purchase, including insurance, a free dehumidifier, and a buyback offer.
+tags: [benefit, earkart, post-purchase]
+
+id: glossary.uv_dehumidifier
+type: glossary
+term: UV Dehumidifier
+definition: A device using ultraviolet light to remove moisture and sweat from hearing aids, improving device longevity by 40–50%.
+tags: [hearing aid care, uv, dehumidifier]
+
+id: glossary.buyback_offer
+type: glossary
+term: Buyback Offer
+definition: An offer allowing hearing aid users to exchange their device within 4 years for up to 50% of the original invoice amount as a credit towards an upgrade.
+tags: [buyback, upgrade, offer]
+
+Benefits (Structured Format)
+id: benefits.earkart.summary
+type: benefit
+title: EarKART Benefits (Post Hearing Aid Purchase)
+benefits:
+
+Hearing aid insurance for 1 year (loss, theft, accidental and liquid damage covered)
+
+Free UV Dehumidifier Kit (improves hearing aid life by 40–50%)
+
+Buyback offer: Up to 50% exchange value within 4 years
+tags: [benefits, insurance, dehumidifier, buyback]
+
+Location and Network
+id: location.clinic_network
+type: location
+title: Clinic/Dealer Network
+content: EarKART has over 1,000 partner clinics and dispensers located PAN India. We assist in booking appointments with the nearest dispenser.
+tags: [network, dealer, clinics, PAN India]
+
+id: location.office
+type: location
+title: Head Office Location
+content: The head office is located in Noida, Uttar Pradesh.
+tags: [location, head office, Noida]
+
+Agent Scripts and Templates
+id: script.phone_closing
+type: closing-script
+content: Is there anything else I can help you with? If you have any concerns, feel free to call me. Thank you for calling us. Have a good day.
+tags: [closing, phone etiquette]
+
+id: response.uncertain_query
+type: template
+content: We will forward your query to the concerned department and get back to you shortly.
+tags: [fallback, escalation, unknown]
+
+Top 5 Common FAQs (LLM-friendly Summaries)
+How do I get EarKART benefits?
+Book an appointment through earKART, complete your purchase, and upload your invoice to the Consumer App for benefits.
+
+What is covered under insurance?
+Insurance covers fire, theft, burglary, accidental, mechanical, and liquid damage—loss not covered.
+
+How many clinics/dealers does EarKART have?
+More than 1,000 clinics and dispensers across India; appointments booked via EarKART.
+
+How long do I have to claim benefits?
+All details (invoice, address, consent) must be provided within 15 days of purchase; otherwise, benefits cannot be claimed.
+
+What if I already have a hearing aid?
+You can still upload your invoice in the App to get a year of insurance and 50% credit in your wallet.
+
+High-Urgency/Time-Sensitive Answers
+Benefit Expiry:
+All required details must be submitted within 15 days of purchase to claim EarKART benefits.
+
+FIR for Theft Claims:
+For stolen hearing aids with invoice value over ₹50,000, an FIR is mandatory to process the insurance claim.

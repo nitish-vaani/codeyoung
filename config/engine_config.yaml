@@ -1,0 +1,17 @@
+client_name: codeyoung
+mode: SIP # SIP, CONSOLE
+record_audio: False
+
+store_transcription:
+  switch: True # True, False
+  where: s3 # local, s3, both
+
+welcome_msg: True
+use_rag: True
+rag_file: "blank"
+bg_audio: False
+idle_call_hungup: True
+llm: openai
+model: gpt4o
+show_tool_call_in_chat: True
+TTS: cartesia # elevenlabs/cartesia/aws/neuphonic - azure/playai is not working currently.

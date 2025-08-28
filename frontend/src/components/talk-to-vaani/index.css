@@ -1,0 +1,133 @@
+.talk-to-vaani {
+    height: 100%;
+    width: 30%;
+    background-color: white;
+    position: relative;
+    float: right;
+    border-radius: 15px;
+    font-family: "Bricolage Grotesque";
+}
+
+.p-card-content>* {
+    margin-bottom: 6%;
+}
+
+.talk-to-vaani h1 {
+    font-size: 2rem;
+    font-weight: 400;
+    text-align: center;
+    position: relative;
+    margin-top: 1%;
+    margin-bottom: 6%;
+}
+
+.talk-to-vaani h3 {
+    font-size: 1.2rem;
+    font-weight: 400;
+    position: relative;
+    margin-block: 2%;
+    margin-top: 2rem;
+}
+
+.talk-to-vaani input {
+    width: 100%;
+    border: none;
+}
+
+.talk-to-vaani>.p-card-body {
+    width: 100%;
+    height: max-content;
+    padding: 1.5rem;
+}
+
+.talk-to-vaani .p-input-icon {
+    line-height: 10px;
+}
+
+.talk-to-vaani input::placeholder {
+    font-size: medium;
+    opacity: 70%;
+    font-family: "Bricolage Grotesque";
+}
+
+.talk-to-vaani .p-placeholder {
+    font-size: medium;
+    opacity: 80%;
+    font-family: "Bricolage Grotesque";
+}
+
+.talk-to-vaani .p-inputtext {
+    font-size: medium;
+    font-family: "Bricolage Grotesque";
+}
+
+.talk-to-vaani button {
+    margin: 0;
+    float: right;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    background-color: rgb(54, 54, 54);
+}
+
+.p-dropdown-item-label {
+    font-size: medium;
+}
+
+.p-dropdown-item {
+    border-bottom: 1px dashed rgba(204, 204, 204, 0.447);
+}
+
+/* Phone input container styles */
+.phone-input-container {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    width: 100%;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.country-code-dropdown {
+    width: 30%;
+    min-width: 90px;
+    max-width: 120px;
+}
+
+.phone-number-input {
+    flex: 1;
+    width: 70%;
+}
+
+.talk-to-vaani .country-code-dropdown .p-dropdown {
+    border: 0;
+    width: 100%;
+    font-size: medium;
+    font-family: "Bricolage Grotesque";
+    height: 25px;
+}
+
+.talk-to-vaani .country-code-dropdown .p-dropdown-label {
+    padding-top: 6px;
+    font-size: 1.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Input field heights */
+.talk-to-vaani .p-icon-field, 
+.talk-to-vaani .w-full {
+    width: 100%;
+    border: 0;
+    height: 25px;
+}
+
+/* HR styling */
+.talk-to-vaani hr {
+    border: none;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 1rem 0;
+    width: 100%;
+}
