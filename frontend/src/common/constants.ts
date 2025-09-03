@@ -6,6 +6,7 @@ export const pagePaths = {
     passReset:'/reset',
     history:'/history',
     feedback:'/feedback',
-    dashboard:'/dashboard'
+    dashboard:'/dashboard',
+    chat:'/chat'
 
 }

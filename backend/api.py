@@ -41,6 +41,9 @@ load_dotenv(dotenv_path="/app/.env.local")
 SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "./backend/test.db")
 EARKART_CALLING_NUMBER = os.getenv("EARKART_CALLING_NUMBER", "+918035315360")
 EARKART_INCOMING_ID = int(os.getenv("EARKART_INCOMING_ID", 2))
+PLIVO_AUTH_ID = os.environ.get("PLIVO_AUTH_ID")
+PLIVO_AUTH_TOKEN = os.environ.get("PLIVO_AUTH_TOKEN")
+PLIVO_FROM_NUMBER = os.environ.get("PLIVO_FROM_NUMBER", "+918035315890")
 
 # Create tables in the database
 Base.metadata.create_all(bind=engine)
@@ -405,79 +408,203 @@ def login(user: UserLogin, db: Session = Depends(get_database)):
 
 #Make call APIs 
 #using sip connection
+# @app.post("/api/trigger-call/", response_model=DispatchResponse)
+# async def create_dispatch(fastapi_request: Request, db: Session = Depends(get_database)):
+#     """
+#     Create a LiveKit dispatch with the provided customer details
+    
+#     - **name**: Customer name
+#     - **contact_number**: Contact number with country code
+#     - **agent_name**: Agent name
+#     - **voice**: Optional voice preference for the agent
+#     """
+#     try:
+#         request_body = await fastapi_request.json()
+#         print(f"request_body: {request_body}")
+
+#         from utils.call import run_livekit_dispatch
+        
+#         # FIXED: Updated to use string model_id instead of int
+#         model = db.query(models.Model).filter(models.Model.model_id == request_body['agent_id']).first()
+#         if not model:
+#             raise HTTPException(status_code=404, detail=f"Model with ID {request_body['agent_id']} not found")
+            
+#         metadata_ = {
+#             "name": request_body['name'],
+#             "phone": request_body['contact_number'],
+#             "agent_name": model.model_name,
+#             "voice": request_body.get('voice', 'default')
+#         }
+        
+#         result = run_livekit_dispatch(
+#             metadata=metadata_,
+#             contact_number=request_body['contact_number'],
+#             agent_name=model.model_name,
+#         )
+#         if not result["success"]:
+#             raise HTTPException(status_code=500, detail=result["error"])
+        
+#         # Parse the result output to extract the room ID
+#         import re
+        
+#         # Extract room ID
+#         room_match = re.search(r'room:"(.*?)"', result["output"])
+#         room_id = room_match.group(1) if room_match else None
+        
+#         # Create a new call record with proper field mapping
+#         new_call = models.Call(
+#             user_id=int(request_body['user_id']),
+#             call_id=room_id,
+#             name=request_body['name'],
+#             call_to=request_body['contact_number'],
+#             call_from="+12512202179",
+#             call_type="Outbound",
+#             model_id=model.model_id,  # This is now string type
+#             call_transcription=f"{BASE_URL}/api/transcript/{room_id}",
+#             call_recording_url=f"{BASE_URL}/api/stream/{room_id}",
+#             call_duration=0,  # FIXED: Removed call_completed field, using call_duration
+#         )
+        
+#         # Add to database
+#         db.add(new_call)
+#         db.commit()
+#         db.refresh(new_call)
+        
+#         # Add call ID to the response
+#         result["call_db_id"] = new_call.id
+        
+#         return result
+        
+#     except (OperationalError, DisconnectionError) as e:
+#         logger.warning(f"Database connection issue in create_dispatch: {e}")
+#         db.rollback()
+#         raise HTTPException(status_code=503, detail="Database connection issue, please try again")
+#     except HTTPException:
+#         raise  # Re-raise HTTP exceptions as-is
+#     except Exception as e:
+#         db.rollback()
+#         logger.error(f"Error creating dispatch: {e}")
+#         raise HTTPException(status_code=500, detail=f"Error creating dispatch: {str(e)}")
+
+
 @app.post("/api/trigger-call/", response_model=DispatchResponse)
 async def create_dispatch(fastapi_request: Request, db: Session = Depends(get_database)):
     """
-    Create a LiveKit dispatch with the provided customer details
+    Create an outbound call using Plivo (replacing Twilio/LiveKit dispatch).
     
     - **name**: Customer name
     - **contact_number**: Contact number with country code
-    - **agent_name**: Agent name
-    - **voice**: Optional voice preference for the agent
+    - **agent_id**: Agent ID to fetch from database
+    - **user_id**: User ID
+    - **voice**: Optional voice preference
     """
     try:
         request_body = await fastapi_request.json()
         print(f"request_body: {request_body}")
 
-        from utils.call import run_livekit_dispatch
+        import requests, time, uuid, os
         
-        # FIXED: Updated to use string model_id instead of int
+        # Get agent model from DB
         model = db.query(models.Model).filter(models.Model.model_id == request_body['agent_id']).first()
         if not model:
             raise HTTPException(status_code=404, detail=f"Model with ID {request_body['agent_id']} not found")
-            
+
+        # Validate phone number
+        phone = request_body['contact_number'].strip()
+        if not phone.startswith("+"):
+            raise HTTPException(status_code=400, detail="Phone number must include country code")
+
+        # Generate unique call/room ID
+        room_id = f"outbound-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+
+        # Create metadata like Twilio version
         metadata_ = {
             "name": request_body['name'],
             "phone": request_body['contact_number'],
             "agent_name": model.model_name,
             "voice": request_body.get('voice', 'default')
         }
-        
-        result = run_livekit_dispatch(
-            metadata=metadata_,
-            contact_number=request_body['contact_number'],
-            agent_name=model.model_name,
+
+        # Build Plivo Answer URL
+        answer_url = (
+            f"https://pacewisdom-ws.vaaniresearch.com/plivo-app/plivo.xml"
+            f"?agent={model.model_name}"
+            # f"&voice={metadata_['voice']}"
+            f"&bg_noise=true&noise_type=call-center&noise_volume=1"
         )
-        if not result["success"]:
-            raise HTTPException(status_code=500, detail=result["error"])
-        
-        # Parse the result output to extract the room ID
-        import re
-        
-        # Extract room ID
-        room_match = re.search(r'room:"(.*?)"', result["output"])
-        room_id = room_match.group(1) if room_match else None
-        
-        # Create a new call record with proper field mapping
+        print(f"Answer URL: {answer_url}")
+
+        # Make Plivo API request
+        url = f"https://api.plivo.com/v1/Account/{PLIVO_AUTH_ID}/Call/"
+        params = {
+            "from": PLIVO_FROM_NUMBER,
+            "to": phone,
+            "answer_url": answer_url,
+            "hangup_url": "https://pacewisdom-ws.vaaniresearch.com/plivo-app/hangup",
+            "answer_method": "GET",
+            "hangup_method": "POST",
+            "time_limit": 3600,
+            "timeout": 30,
+        }
+
+        response = requests.post(
+            url,
+            json=params,
+            auth=(PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN),
+            timeout=10
+        )
+
+        if response.status_code != 201:
+            error_data = response.json() if response.content else {}
+            logger.error(f"Plivo API error ({response.status_code}): {error_data}")
+            raise HTTPException(status_code=500, detail=f"Plivo API error: {error_data}")
+
+        call_data = response.json()
+        call_uuid = call_data.get("request_uuid")
+        print(f"Plivo Call Data: {call_data}, UUID: {call_uuid}")
+
+        # Prepare metadata (similar to Twilio result object)
+        result = {
+            "success": True,
+            "output": f'room:"{call_uuid}"',
+            "metadata": metadata_,
+            "agent_name": model.model_name
+        }
+
+        # Create database record (unified schema)
         new_call = models.Call(
             user_id=int(request_body['user_id']),
-            call_id=room_id,
+            call_id=room_id,   # Keep internal unique ID
             name=request_body['name'],
             call_to=request_body['contact_number'],
-            call_from="+12512202179",
+            call_from=PLIVO_FROM_NUMBER,
             call_type="Outbound",
-            model_id=model.model_id,  # This is now string type
-            call_transcription=f"{BASE_URL}/api/transcript/{room_id}",
-            call_recording_url=f"{BASE_URL}/api/stream/{room_id}",
-            call_duration=0,  # FIXED: Removed call_completed field, using call_duration
+            model_id=model.model_id,
+            call_transcription=f"{BASE_URL}/api/transcript/{call_uuid}",
+            call_recording_url=f"{BASE_URL}/api/stream/{call_uuid}",
+            call_duration=0,
+            call_metadata={
+                "plivo": True,
+                "plivo_uuid": call_uuid,
+                **metadata_
+            }
         )
-        
-        # Add to database
+
         db.add(new_call)
         db.commit()
         db.refresh(new_call)
-        
-        # Add call ID to the response
+
+        # Attach DB ID
         result["call_db_id"] = new_call.id
-        
+
         return result
-        
+
     except (OperationalError, DisconnectionError) as e:
         logger.warning(f"Database connection issue in create_dispatch: {e}")
         db.rollback()
         raise HTTPException(status_code=503, detail="Database connection issue, please try again")
     except HTTPException:
-        raise  # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating dispatch: {e}")
@@ -1094,14 +1221,100 @@ async def health_check():
     }
 
 
+# @app.post("/api/trigger-chat/", response_model=ChatResponse)
+# async def create_chat_session(fastapi_request: Request, db: Session = Depends(get_database)):
+#     """
+#     Create a LiveKit chat session with the provided customer details
+    
+#     - **name**: Customer name
+#     - **agent_name**: Agent name
+#     - **user_id**: User ID
+#     """
+#     try:
+#         request_body = await fastapi_request.json()
+#         print(f"Chat request body: {request_body}")
+
+#         from utils.call import run_livekit_dispatch
+        
+#         # Get model information
+#         model = db.query(models.Model).filter(models.Model.model_id == request_body['agent_id']).first()
+#         if not model:
+#             raise HTTPException(status_code=404, detail=f"Model with ID {request_body['agent_id']} not found")
+            
+#         # Create metadata for chat session
+#         metadata_ = {
+#             "name": request_body['name'],
+#             "modality": "chat",  # This is the key difference from voice calls
+#             "agent_name": model.model_name,
+#             "user_id": request_body.get('user_id'),
+#             "session_id": request_body.get('session_id', f"chat_{request_body['user_id']}_{datetime.now().timestamp()}")
+#         }
+        
+#         # Use the same LiveKit dispatch system but for chat
+#         result = run_livekit_dispatch(
+#             metadata=metadata_,
+#             contact_number="chat_session",  # Not used for chat
+#             agent_name=model.model_name,
+#         )
+        
+#         if not result["success"]:
+#             raise HTTPException(status_code=500, detail=result["error"])
+        
+#         # Parse the result output to extract the room ID
+#         import re
+        
+#         # Extract room ID
+#         room_match = re.search(r'room:"(.*?)"', result["output"])
+#         room_id = room_match.group(1) if room_match else None
+        
+#         # Create a new chat session record
+#         new_chat = models.Call(  # Using same table for now
+#             user_id=int(request_body['user_id']),
+#             call_id=room_id,
+#             name=request_body['name'],
+#             call_to="chat_session",
+#             call_from="chat_user",
+#             call_type="Chat",  # Different call type
+#             model_id=model.model_id,
+#             call_transcription=f"{BASE_URL}/api/transcript/{room_id}",
+#             call_recording_url=f"{BASE_URL}/api/chat-log/{room_id}",  # Different endpoint for chat logs
+#             call_duration=0,
+#         )
+        
+#         # Add to database
+#         db.add(new_chat)
+#         db.commit()
+#         db.refresh(new_chat)
+        
+#         # Add chat session ID to the response
+#         result["room_id"] = room_id
+#         result["chat_db_id"] = new_chat.id
+        
+#         return ChatResponse(
+#             success=result["success"],
+#             message="Chat session created successfully",
+#             output=result.get("output"),
+#             room_id=room_id,
+#             chat_db_id=new_chat.id
+#         )
+        
+#     except (OperationalError, DisconnectionError) as e:
+#         logger.warning(f"Database connection issue in create_chat_session: {e}")
+#         db.rollback()
+#         raise HTTPException(status_code=503, detail="Database connection issue, please try again")
+#     except HTTPException:
+#         raise  # Re-raise HTTP exceptions as-is
+#     except Exception as e:
+#         db.rollback()
+#         logger.error(f"Error creating chat session: {e}")
+#         raise HTTPException(status_code=500, detail=f"Error creating chat session: {str(e)}")
+
+# Add this to your backend/api.py if it doesn't exist or update the existing one:
+
 @app.post("/api/trigger-chat/", response_model=ChatResponse)
 async def create_chat_session(fastapi_request: Request, db: Session = Depends(get_database)):
     """
     Create a LiveKit chat session with the provided customer details
-    
-    - **name**: Customer name
-    - **agent_name**: Agent name
-    - **user_id**: User ID
     """
     try:
         request_body = await fastapi_request.json()
@@ -1109,10 +1322,22 @@ async def create_chat_session(fastapi_request: Request, db: Session = Depends(ge
 
         from utils.call import run_livekit_dispatch
         
-        # Get model information
-        model = db.query(models.Model).filter(models.Model.model_id == request_body['agent_id']).first()
+        # Get model information - for chat, we might want to use a specific chat agent
+        # For now, let's create a default chat model if agent_id is generic
+        agent_id = request_body.get('agent_id', 'chat_agent_1')
+        
+        # You can create a specific model for chat or use an existing one
+        model = db.query(models.Model).filter(models.Model.model_id == agent_id).first()
         if not model:
-            raise HTTPException(status_code=404, detail=f"Model with ID {request_body['agent_id']} not found")
+            # Create a default chat model if it doesn't exist
+            model = models.Model(
+                model_id="chat_agent_1",
+                model_name="Chat Assistant",
+                client_name=client_name.upper()
+            )
+            db.add(model)
+            db.commit()
+            db.refresh(model)
             
         # Create metadata for chat session
         metadata_ = {
@@ -1160,16 +1385,15 @@ async def create_chat_session(fastapi_request: Request, db: Session = Depends(ge
         db.refresh(new_chat)
         
         # Add chat session ID to the response
-        result["room_id"] = room_id
-        result["chat_db_id"] = new_chat.id
-        
-        return ChatResponse(
+        response_data = ChatResponse(
             success=result["success"],
             message="Chat session created successfully",
             output=result.get("output"),
             room_id=room_id,
             chat_db_id=new_chat.id
         )
+        
+        return response_data
         
     except (OperationalError, DisconnectionError) as e:
         logger.warning(f"Database connection issue in create_chat_session: {e}")
@@ -1181,6 +1405,7 @@ async def create_chat_session(fastapi_request: Request, db: Session = Depends(ge
         db.rollback()
         logger.error(f"Error creating chat session: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating chat session: {str(e)}")
+
 
 @app.post("/api/get-chat-token/")
 async def get_chat_token(fastapi_request: Request):
@@ -1214,7 +1439,7 @@ async def get_chat_token(fastapi_request: Request):
             can_publish_data=True
         ))
         
-        # Token expires in 1 hour - Fixed the timedelta reference
+        # Token expires in 1 hour
         token.with_ttl(timedelta(hours=1))
         
         jwt_token = token.to_jwt()
@@ -1228,6 +1453,53 @@ async def get_chat_token(fastapi_request: Request):
     except Exception as e:
         logger.error(f"Error generating chat token: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate token: {str(e)}")
+
+# @app.post("/api/get-chat-token/")
+# async def get_chat_token(fastapi_request: Request):
+#     """
+#     Generate LiveKit access token for chat sessions
+#     """
+#     try:
+#         request_body = await fastapi_request.json()
+#         room_id = request_body.get('room_id')
+#         user_name = request_body.get('user_name', 'Chat User')
+        
+#         if not room_id:
+#             raise HTTPException(status_code=400, detail="room_id is required")
+        
+#         # Create token
+#         token = api.AccessToken(
+#             api_key=os.getenv("LIVEKIT_API_KEY", "APIoLr2sRCRJWY5"),  # Your LiveKit API key
+#             api_secret=os.getenv("LIVEKIT_API_SECRET", "yE3wUkoQxjWjhteMAed9ubm5mYg3iOfPT6qBQfffzgJC")  # Your LiveKit API secret
+#         )
+        
+#         # Set token info
+#         token.with_identity(f"chat_user_{user_name}")
+#         token.with_name(user_name)
+        
+#         # Grant permissions
+#         token.with_grants(api.VideoGrants(
+#             room_join=True,
+#             room=room_id,
+#             can_publish=True,
+#             can_subscribe=True,
+#             can_publish_data=True
+#         ))
+        
+#         # Token expires in 1 hour - Fixed the timedelta reference
+#         token.with_ttl(timedelta(hours=1))
+        
+#         jwt_token = token.to_jwt()
+        
+#         return {
+#             "success": True,
+#             "token": jwt_token,
+#             "room_id": room_id
+#         }
+        
+#     except Exception as e:
+#         logger.error(f"Error generating chat token: {e}")
+#         raise HTTPException(status_code=500, detail=f"Failed to generate token: {str(e)}")
 
 @app.get("/api/chat-log/{call_id}")
 async def get_chat_log(call_id: str, db: Session = Depends(get_database)):

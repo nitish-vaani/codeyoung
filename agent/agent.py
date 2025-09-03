@@ -16,6 +16,6 @@ if __name__ == "__main__":
         WorkerOptions(
             entrypoint_fnc=entrypoint,
             prewarm_fnc=prewarm_fnc,
-            agent_name="Codeyoung Agent",
+            agent_name="Codeyoung",
         )
     )

@@ -33,23 +33,24 @@
 
 //   const menuItems = [
 //     {
+//       label: "Dashboard",
+//       icon: "pi pi-chart-bar",
+//       url: pagePaths.dashboard
+//     },
+//     {
 //       label: "Call Test",
 //       icon: "pi pi-phone",
-//       url:pagePaths.home
-
-//     }
-//     ,
+//       url: pagePaths.home
+//     },
 //     {
 //       label: "Call History",
 //       icon: "pi pi-history",
-//       url:pagePaths.history
-//     }
-//     ,
+//       url: pagePaths.history
+//     },
 //     {
 //       label: "Feedback",
 //       icon: "pi pi-comment",
-//       url:pagePaths.feedback
-
+//       url: pagePaths.feedback
 //     }
 //   ];
 
@@ -123,6 +124,11 @@ const Header = () => {
       label: "Call Test",
       icon: "pi pi-phone",
       url: pagePaths.home
+    },
+    {
+      label: "Chat Test",  // NEW: Chat menu item
+      icon: "pi pi-comments",
+      url: pagePaths.chat
     },
     {
       label: "Call History",
