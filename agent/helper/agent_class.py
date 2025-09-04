@@ -469,6 +469,7 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
 
     async def stream_response(self, response_text: str):
         """Stream response text in chunks"""
+        logger.info("Printing from streaming response")
         if not response_text:
             return
             
@@ -508,31 +509,39 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
     async def handle_user_message(self, message: str):
         """Process incoming user message and generate response"""
         try:
+            print(f"🔄 Processing user message: {message}")
             logger.info(f"Processing user message: {message}")
             
             # Add user message to transcript
             timestamp = datetime.now().strftime('%H:%M:%S')
             transcript_manager.conversation_transcript += f"\n[{timestamp}] USER: {message}\n"
             
-            # Here you would integrate with your LLM and function tools
-            # For now, simulate a response
-            await asyncio.sleep(0.5)  # Simulate processing time
+            # Generate response using conversation history for context
+            conversation_history = transcript_manager.get_transcript()
+            if conversation_history.strip():
+                # Include full conversation history for context
+                prompt = f"{self._instructions}\n\n{conversation_history}\nUser: {message}\nAssistant:"
+            else:
+                # First message in conversation
+                prompt = f"{self._instructions}\n\nUser: {message}\nAssistant:"
             
-            # Example response
-            response = f"I understand you said: {message}. How can I help you with your service needs?"
+            print(f"🧠 Sending prompt to LLM with {len(conversation_history)} chars of history")
+            response = self.llm_obj.run_prompt(prompt)
             
             # Add agent response to transcript  
             timestamp = datetime.now().strftime('%H:%M:%S')
             transcript_manager.conversation_transcript += f"\n[{timestamp}] AGENT: {response}\n"
             
             # Stream the response
+            print(f"📤 Sending response: {response[:100]}...")
             await self.stream_response(response)
             
         except Exception as e:
+            print(f"❌ Error in handle_user_message: {e}")
             logger.error(f"Error handling user message: {e}")
-            await self.send_message("I'm sorry, I encountered an error. Please try again.", "error")
-
-    # IMPLEMENT THE ABSTRACT METHOD PROPERLY
+            # Fallback
+            await self.send_message("I'm sorry, I encountered an error. Please try again.", "text")
+    
     async def end_session(self, ctx: RunContext):
         """Implementation of abstract method to end chat session"""
         participant_id = self.participant.identity if self.participant else 'unknown'
@@ -573,18 +582,37 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
                 {"agent": "ChatServiceAgent"}
             )
 
+    # async def on_data_received(self, data_packet: rtc.DataPacket):
+    #     """Handle incoming data from user"""
+    #     try:
+    #         # Decode the data
+    #         message_data = json.loads(data_packet.data.decode())
+            
+    #         if message_data.get("type") == "user_message":
+    #             user_message = message_data.get("content", "")
+    #             await self.handle_user_message(user_message)
+                
+    #     except Exception as e:
+    #         logger.error(f"Error processing data packet: {e}")
+
     async def on_data_received(self, data_packet: rtc.DataPacket):
         """Handle incoming data from user"""
         try:
             # Decode the data
             message_data = json.loads(data_packet.data.decode())
             
+            print(f"📨 Received data: {message_data}")  # Debug logging
+            
             if message_data.get("type") == "user_message":
                 user_message = message_data.get("content", "")
+                print(f"👤 Processing user message: {user_message}")  # Debug logging
                 await self.handle_user_message(user_message)
+            else:
+                print(f"🔍 Unknown message type: {message_data.get('type')}")  # Debug logging
                 
         except Exception as e:
             logger.error(f"Error processing data packet: {e}")
+            print(f"❌ Error processing data packet: {e}")  # Debug logging
 
 # Factory Functions
 def create_voice_service_agent(agent_name: str, appointment_time: str, contact_info: dict[str, Any], 

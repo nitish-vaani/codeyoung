@@ -63,14 +63,23 @@ async def setup_event_handlers(ctx: JobContext, session_state: CallState, agent,
         asyncio.create_task(record_session_end_once("Room disconnected"))
 
     # Chat-specific data handler
-    if modality == "chat" and isinstance(agent, ChatServiceAgent):
+    # if modality == "chat" and isinstance(agent, ChatServiceAgent):
 
+    #     @ctx.room.on("data_received")
+    #     def on_data_received(*args):
+    #         # Handle both old and new signatures
+    #         if len(args) >= 1:
+    #             data_packet = args[0]
+    #             asyncio.create_task(agent.on_data_received(data_packet))
+
+    if modality == "chat" and isinstance(agent, ChatServiceAgent):
+        
         @ctx.room.on("data_received")
-        def on_data_received(*args):
-            # Handle both old and new signatures
-            if len(args) >= 1:
-                data_packet = args[0]
-                asyncio.create_task(agent.on_data_received(data_packet))
+        def on_data_received(data_packet):
+            print(f"🎯 Room received data packet, forwarding to agent")  # Debug logging
+            asyncio.create_task(agent.on_data_received(data_packet))
+            
+        print(f"✅ Chat data handler set up for agent")
 
 async def setup_cleanup_callback(ctx: JobContext, session_state: CallState, task_refs: dict):
     """Setup cleanup callback for shutdown"""

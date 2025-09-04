@@ -34,6 +34,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const toast = useRef<Toast>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Use useRef for accumulation to avoid stale closure issues
+  const accumulatorRef = useRef<string>('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,6 +51,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
   };
 
   const addMessage = (type: 'user' | 'agent' | 'system', content: string, sender: string = '') => {
+    console.log('🔵 Adding message:', type, content.substring(0, 50) + '...');
     const newMessage: ChatMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type,
@@ -55,7 +59,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
       timestamp: new Date(),
       sender: sender || type
     };
-    setMessages(prev => [...prev, newMessage]);
+    setMessages(prev => {
+      const updated = [...prev, newMessage];
+      console.log('🔵 Messages now:', updated.length);
+      return updated;
+    });
   };
 
   const connectToChat = async () => {
@@ -155,31 +163,41 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
         showToast('info', 'Disconnected', 'Chat session ended');
       });
 
+      // SIMPLE ACCUMULATION APPROACH
       newRoom.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
-        try {
-          const decoder = new TextDecoder();
-          const message = JSON.parse(decoder.decode(payload));
-          
-          console.log('Received data:', message);
-          
-          if (message.sender === 'agent') {
-            setIsAgentTyping(false);
-            
-            if (message.type === 'text') {
-              addMessage('agent', message.content, 'Agent');
-            } else if (message.type === 'tool_start') {
-              setIsAgentTyping(true);
-              addMessage('system', `🔧 ${message.content}`, 'System');
-            } else if (message.type === 'tool_success') {
-              addMessage('system', `✅ ${message.content}`, 'System');
-            } else if (message.type === 'tool_error') {
-              addMessage('system', `❌ ${message.content}`, 'System');
-            }
-          }
-        } catch (error) {
-          console.error('Error parsing received data:', error);
-        }
-      });
+  try {
+    const decoder = new TextDecoder();
+    const message = JSON.parse(decoder.decode(payload));
+    
+    console.log('📨 Received message:', message);
+    
+    if (message.sender === 'agent') {
+      setIsAgentTyping(false);
+      
+      // Handle ANY text message type - just display it
+      if ((message.type === 'text' || message.type === 'text_chunk') && message.content && message.content.trim() !== '') {
+        console.log('✅ Adding message to UI:', message.content);
+        addMessage('agent', message.content, 'Agent');
+      }
+      // Ignore text_complete completely
+      else if (message.type === 'text_complete') {
+        console.log('🔄 Ignoring text_complete');
+        // Do nothing
+      }
+      // Handle tool messages
+      else if (message.type === 'tool_start') {
+        setIsAgentTyping(true);
+        addMessage('system', `🔧 ${message.content}`, 'System');
+      } else if (message.type === 'tool_success') {
+        addMessage('system', `✅ ${message.content}`, 'System');
+      } else if (message.type === 'tool_error') {
+        addMessage('system', `❌ ${message.content}`, 'System');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error parsing data:', error);
+  }
+});
 
       // Handle connection errors
       newRoom.on(RoomEvent.Reconnecting, () => {
@@ -232,13 +250,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
       const encoder = new TextEncoder();
       const data = encoder.encode(JSON.stringify(messageData));
       
-      // Updated API call without deprecated options
       await room.localParticipant.publishData(data, {
         reliable: true,
         topic: 'chat_message'
       });
       
-      console.log('Message sent:', messageData);
+      console.log('📤 Message sent:', messageData);
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -263,6 +280,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
     setIsConnecting(false);
     setMessages([]);
     setConnectionError(null);
+    accumulatorRef.current = '';
     
     if (onClose) {
       onClose();
@@ -315,6 +333,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
             tooltip="Disconnect"
           />
         )}
+      </div>
+
+      {/* Debug Info */}
+      <div style={{ 
+        background: '#f0f0f0', 
+        padding: '0.5rem', 
+        fontSize: '0.8rem',
+        borderBottom: '1px solid #ddd'
+      }}>
+        Messages: {messages.length} | Accumulator: {accumulatorRef.current.length} chars
       </div>
 
       {/* Connection Error */}
@@ -429,7 +457,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onClose, selectedAgent, c
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ProgressSpinner style={{ width: '16px', height: '16px' }} />
-                <span style={{ fontSize: '0.9rem', color: '#6c757d' }}>Agent is typing...</span>
+                <span style={{ fontSize: '0.9rem', color: '#6c757d' }}>
+                  Agent is responding...
+                </span>
               </div>
             </div>
           </div>
