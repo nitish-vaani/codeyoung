@@ -9,6 +9,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict, AsyncIterable
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from livekit import rtc
 from livekit.agents import (Agent, function_tool, RunContext, llm)
@@ -24,6 +25,11 @@ from .database_helpers import insert_call_end_async
 from .transcript_manager import transcript_manager
 from .logging_config import get_logger
 from .rag_connector import enrich_with_rag
+
+from .chat_database_helpers import (
+    insert_chat_session_start, insert_chat_session_end, 
+    insert_chat_message, update_chat_session_activity
+)
 
 logger = get_logger(__name__)
 
@@ -401,6 +407,217 @@ class VoiceServiceAgent(Agent, BaseCustomerServiceAgent):
         return "Noted"
 
 
+# class ChatServiceAgent(BaseCustomerServiceAgent):
+#     """Chat agent class extending BaseCustomerServiceAgent for text-based conversations"""
+    
+#     def __init__(
+#         self,
+#         *,
+#         agent_name: str,
+#         appointment_time: str,
+#         contact_info: dict[str, Any],
+#         session_state: CallState,
+#         prompt_path: str,
+#     ):
+#         super().__init__(
+#             agent_name=agent_name,
+#             appointment_time=appointment_time,
+#             contact_info=contact_info,
+#             session_state=session_state,
+#             prompt_path=prompt_path,
+#             modality="chat"
+#         )
+#         self.participant: rtc.RemoteParticipant | None = None
+#         self.session = None  # Will be set by session manager
+#         self.room = None     # Will be set when room is available
+        
+#         logger.info(f"Chat agent {agent_name} initialized")
+
+#     def set_participant(self, participant: rtc.RemoteParticipant):
+#         """Set the participant for this chat session"""
+#         self.participant = participant
+
+#     def set_session(self, session):
+#         """Set the session for this chat agent"""
+#         self.session = session
+        
+#     def set_room(self, room):
+#         """Set the room for this chat agent"""
+#         self.room = room
+
+#     async def send_message(self, message: str, message_type: str = "text"):
+#         """Send a message through LiveKit data channels"""
+#         if not self.room:
+#             logger.warning("Cannot send message: room not available")
+#             return
+        
+#         try:
+#             # Create message payload
+#             message_data = {
+#                 "type": message_type,
+#                 "content": message,
+#                 "timestamp": datetime.now().isoformat(),
+#                 "sender": "agent"
+#             }
+            
+#             # Send through LiveKit data channels using the room's local participant
+#             await self.room.local_participant.publish_data(
+#                 json.dumps(message_data).encode(),
+#                 reliable=True,
+#                 topic="chat_message"
+#             )
+            
+#             logger.debug(f"Sent {message_type} message: {message[:50]}...")
+            
+#         except Exception as e:
+#             logger.error(f"Failed to send message: {e}")
+
+#     async def stream_response(self, response_text: str):
+#         """Stream response text in chunks"""
+#         logger.info("Printing from streaming response")
+#         if not response_text:
+#             return
+            
+#         # Clean the response text
+#         cleaned_text = preprocess_text(response_text)
+        
+#         # Split into chunks (by sentences or fixed length)
+#         chunks = self._split_into_chunks(cleaned_text)
+        
+#         for chunk in chunks:
+#             await self.send_message(chunk, "text_chunk")
+#             await asyncio.sleep(0.1)  # Small delay for streaming effect
+            
+#         # Send end marker
+#         await self.send_message("", "text_complete")
+
+#     def _split_into_chunks(self, text: str, max_chunk_size: int = 50) -> list[str]:
+#         """Split text into streamable chunks"""
+#         # First try to split by sentences
+#         sentences = text.split('. ')
+#         chunks = []
+#         current_chunk = ""
+        
+#         for sentence in sentences:
+#             if len(current_chunk + sentence) <= max_chunk_size:
+#                 current_chunk += sentence + ". " if sentence != sentences[-1] else sentence
+#             else:
+#                 if current_chunk:
+#                     chunks.append(current_chunk.strip())
+#                 current_chunk = sentence + ". " if sentence != sentences[-1] else sentence
+                
+#         if current_chunk:
+#             chunks.append(current_chunk.strip())
+            
+#         return chunks if chunks else [text]
+
+#     async def handle_user_message(self, message: str):
+#         """Process incoming user message and generate response"""
+#         try:
+#             print(f"🔄 Processing user message: {message}")
+#             logger.info(f"Processing user message: {message}")
+            
+#             # Add user message to transcript
+#             timestamp = datetime.now().strftime('%H:%M:%S')
+#             transcript_manager.conversation_transcript += f"\n[{timestamp}] USER: {message}\n"
+            
+#             # Generate response using conversation history for context
+#             conversation_history = transcript_manager.get_transcript()
+#             if conversation_history.strip():
+#                 # Include full conversation history for context
+#                 prompt = f"{self._instructions}\n\n{conversation_history}\nUser: {message}\nAssistant:"
+#             else:
+#                 # First message in conversation
+#                 prompt = f"{self._instructions}\n\nUser: {message}\nAssistant:"
+            
+#             print(f"🧠 Sending prompt to LLM with {len(conversation_history)} chars of history")
+#             response = self.llm_obj.run_prompt(prompt)
+            
+#             # Add agent response to transcript  
+#             timestamp = datetime.now().strftime('%H:%M:%S')
+#             transcript_manager.conversation_transcript += f"\n[{timestamp}] AGENT: {response}\n"
+            
+#             # Stream the response
+#             print(f"📤 Sending response: {response[:100]}...")
+#             await self.stream_response(response)
+            
+#         except Exception as e:
+#             print(f"❌ Error in handle_user_message: {e}")
+#             logger.error(f"Error handling user message: {e}")
+#             # Fallback
+#             await self.send_message("I'm sorry, I encountered an error. Please try again.", "text")
+    
+#     async def end_session(self, ctx: RunContext):
+#         """Implementation of abstract method to end chat session"""
+#         participant_id = self.participant.identity if self.participant else 'unknown'
+#         logger.info(f"Chat agent initiated session end for {participant_id}")
+
+#         await self.record_session_end("Chat ended")
+        
+#         # Send goodbye message
+#         await self.send_message("Thank you for chatting with our customer service. Have a great day!", "text")
+#         await asyncio.sleep(1)  # Give time for message to send
+        
+#         await hangup()
+#         return "Noted"
+
+#     @function_tool
+#     async def end_chat_session(self, ctx: RunContext):
+#         """End the chat session gracefully - this is the function tool version"""
+#         return await self.end_session(ctx)
+
+#     @function_tool
+#     async def detected_answering_machine(self, ctx: RunContext):
+#         """Handle answering machine detection (not applicable for chat)"""
+#         participant_id = self.participant.identity if self.participant else 'unknown'
+#         logger.info(f"Detected answering machine for {participant_id} (chat mode)")
+        
+#         await self.record_session_end("Answering machine detected")
+#         await hangup()
+#         return "Noted"
+
+#     async def on_enter(self):
+#         """Called when agent enters the chat conversation"""
+#         welcome_message = "Hi! You've reached our customer service. I am your assistant, how can I help you today?"
+#         await self.send_message(welcome_message, "text")
+        
+#         # Set agent attribute in room if available
+#         if self.room:
+#             await self.room.local_participant.set_attributes(
+#                 {"agent": "ChatServiceAgent"}
+#             )
+
+#     # async def on_data_received(self, data_packet: rtc.DataPacket):
+#     #     """Handle incoming data from user"""
+#     #     try:
+#     #         # Decode the data
+#     #         message_data = json.loads(data_packet.data.decode())
+            
+#     #         if message_data.get("type") == "user_message":
+#     #             user_message = message_data.get("content", "")
+#     #             await self.handle_user_message(user_message)
+                
+#     #     except Exception as e:
+#     #         logger.error(f"Error processing data packet: {e}")
+
+#     async def on_data_received(self, data_packet: rtc.DataPacket):
+#         """Handle incoming data from user"""
+#         try:
+#             # Decode the data
+#             message_data = json.loads(data_packet.data.decode())
+            
+#             print(f"📨 Received data: {message_data}")  # Debug logging
+            
+#             if message_data.get("type") == "user_message":
+#                 user_message = message_data.get("content", "")
+#                 print(f"👤 Processing user message: {user_message}")  # Debug logging
+#                 await self.handle_user_message(user_message)
+#             else:
+#                 print(f"🔍 Unknown message type: {message_data.get('type')}")  # Debug logging
+                
+#         except Exception as e:
+#             logger.error(f"Error processing data packet: {e}")
+#             print(f"❌ Error processing data packet: {e}")  # Debug logging
 
 class ChatServiceAgent(BaseCustomerServiceAgent):
     """Chat agent class extending BaseCustomerServiceAgent for text-based conversations"""
@@ -425,6 +642,7 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
         self.participant: rtc.RemoteParticipant | None = None
         self.session = None  # Will be set by session manager
         self.room = None     # Will be set when room is available
+        self.chat_session_id = None  # Will be set when registering with session manager
         
         logger.info(f"Chat agent {agent_name} initialized")
 
@@ -440,8 +658,61 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
         """Set the room for this chat agent"""
         self.room = room
 
+    def register_with_session_manager(self, session_id: str, user_id: str):
+        """Register this agent with the chat session manager and start database session"""
+        self.chat_session_id = session_id
+        
+        # Create database session record
+        asyncio.create_task(self._create_chat_session_record(session_id, user_id))
+        
+        logger.info(f"Registered chat agent with session manager: {session_id}")
+    
+    async def _create_chat_session_record(self, session_id: str, user_id: str):
+        """Create the initial database record for this chat session"""
+        try:
+            from .chat_database_helpers import insert_chat_session_start
+            
+            # Extract metadata from contact_info and other sources
+            session_metadata = {
+                "contact_info": self.contact_info,
+                "agent_name": self.agent_name,
+                "appointment_time": self.appointment_time,
+                "modality": self.modality
+            }
+            
+            await insert_chat_session_start(
+                session_id=session_id,
+                user_id=int(user_id) if user_id.isdigit() else 0,
+                room_id=session_id,  # Using session_id as room_id for simplicity
+                participant_id=f"chat_user_{user_id}",
+                agent_id="chat_agent_1",  # Default agent ID
+                agent_name=self.agent_name,
+                customer_name=self.contact_info.get("name", "Chat User"),
+                session_metadata=session_metadata
+            )
+            logger.info(f"Created database record for chat session: {session_id}")
+        except Exception as e:
+            logger.error(f"Failed to create chat session database record: {e}")
+
+    def update_activity(self):
+        """Update activity in session manager and database when user sends message"""
+        if self.chat_session_id:
+            from .chat_session_manager import update_chat_activity
+            update_chat_activity(self.chat_session_id)
+            
+            # Also update database
+            asyncio.create_task(self._update_db_activity())
+    
+    async def _update_db_activity(self):
+        """Update database activity timestamp"""
+        try:
+            from .chat_database_helpers import update_chat_session_activity
+            await update_chat_session_activity(self.chat_session_id)
+        except Exception as e:
+            logger.error(f"Failed to update database activity: {e}")
+
     async def send_message(self, message: str, message_type: str = "text"):
-        """Send a message through LiveKit data channels"""
+        """Send a message through LiveKit data channels and save to database"""
         if not self.room:
             logger.warning("Cannot send message: room not available")
             return
@@ -462,10 +733,32 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
                 topic="chat_message"
             )
             
+            # Save agent message to database
+            if self.chat_session_id and message_type in ["text", "text_chunk"]:
+                await self._save_message_to_db(message, message_type, "agent", message_data["timestamp"])
+            
             logger.debug(f"Sent {message_type} message: {message[:50]}...")
             
         except Exception as e:
             logger.error(f"Failed to send message: {e}")
+
+    async def _save_message_to_db(self, content: str, message_type: str, sender: str, timestamp: str):
+        """Save message to database"""
+        try:
+            from .chat_database_helpers import insert_chat_message
+            import uuid
+            
+            message_id = f"msg_{uuid.uuid4().hex[:12]}"
+            await insert_chat_message(
+                session_id=self.chat_session_id,
+                message_id=message_id,
+                message_type=message_type,
+                content=content,
+                sender=sender,
+                message_metadata={"timestamp": timestamp}
+            )
+        except Exception as e:
+            logger.error(f"Failed to save message to database: {e}")
 
     async def stream_response(self, response_text: str):
         """Stream response text in chunks"""
@@ -512,6 +805,9 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
             print(f"🔄 Processing user message: {message}")
             logger.info(f"Processing user message: {message}")
             
+            # Update activity in session manager
+            self.update_activity()
+            
             # Add user message to transcript
             timestamp = datetime.now().strftime('%H:%M:%S')
             transcript_manager.conversation_transcript += f"\n[{timestamp}] USER: {message}\n"
@@ -546,6 +842,11 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
         """Implementation of abstract method to end chat session"""
         participant_id = self.participant.identity if self.participant else 'unknown'
         logger.info(f"Chat agent initiated session end for {participant_id}")
+
+        # Unregister from session manager
+        if self.chat_session_id:
+            from .chat_session_manager import chat_timeout_manager
+            chat_timeout_manager.unregister_session(self.chat_session_id)
 
         await self.record_session_end("Chat ended")
         
@@ -582,19 +883,6 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
                 {"agent": "ChatServiceAgent"}
             )
 
-    # async def on_data_received(self, data_packet: rtc.DataPacket):
-    #     """Handle incoming data from user"""
-    #     try:
-    #         # Decode the data
-    #         message_data = json.loads(data_packet.data.decode())
-            
-    #         if message_data.get("type") == "user_message":
-    #             user_message = message_data.get("content", "")
-    #             await self.handle_user_message(user_message)
-                
-    #     except Exception as e:
-    #         logger.error(f"Error processing data packet: {e}")
-
     async def on_data_received(self, data_packet: rtc.DataPacket):
         """Handle incoming data from user"""
         try:
@@ -606,6 +894,16 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
             if message_data.get("type") == "user_message":
                 user_message = message_data.get("content", "")
                 print(f"👤 Processing user message: {user_message}")  # Debug logging
+                
+                # Save user message to database
+                if self.chat_session_id:
+                    await self._save_message_to_db(
+                        user_message, 
+                        "user_message", 
+                        "user", 
+                        message_data.get("timestamp", datetime.now().isoformat())
+                    )
+                
                 await self.handle_user_message(user_message)
             else:
                 print(f"🔍 Unknown message type: {message_data.get('type')}")  # Debug logging
@@ -613,6 +911,35 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
         except Exception as e:
             logger.error(f"Error processing data packet: {e}")
             print(f"❌ Error processing data packet: {e}")  # Debug logging
+
+    async def record_session_end(self, end_reason: str):
+        """Record session end in database - use chat tables for chat sessions"""
+        if self.session_state.call_end_recorded or not self.session_state.call_started:
+            return
+            
+        try:
+            self.session_state.call_end_recorded = True
+            
+            if self.modality == "chat" and self.chat_session_id:
+                # Use chat-specific database table
+                from .chat_database_helpers import insert_chat_session_end
+                success = await insert_chat_session_end(self.chat_session_id, end_reason)
+                if success:
+                    logger.info(f"Recorded chat session end: {self.chat_session_id} - {end_reason}")
+                else:
+                    logger.error(f"Failed to record chat session end: {self.chat_session_id}")
+            else:
+                # Use call database for voice sessions
+                operation_id = await insert_call_end_async(
+                    self.session_state.room_name,
+                    end_reason
+                )
+                logger.info(f"Queued session end recording: {operation_id} - {end_reason}")
+        except Exception as e:
+            logger.error(f"Failed to record session end: {e}")
+
+
+
 
 # Factory Functions
 def create_voice_service_agent(agent_name: str, appointment_time: str, contact_info: dict[str, Any], 
@@ -645,3 +972,6 @@ def create_mysyara_agent(*args, **kwargs):
 def create_mysyara_chat_agent(*args, **kwargs):
     """Backward compatibility wrapper"""
     return create_chat_service_agent(*args, **kwargs)
+
+
+
