@@ -3,6 +3,7 @@
 // import History from './pages/history'
 // import SignIn from "./pages/sign-in";
 // import Dashboard from "./pages/dashboard";
+// import ChatPage from "./pages/chat";
 // import PrivateRoute from "./components/private-route";
 // import { pagePaths } from "./common/constants";
 // import './App.css'
@@ -46,6 +47,16 @@
 //           }
 //         />
 //         <Route
+//           path={pagePaths.chat}
+//           element={
+//             <PrivateRoute>
+//               <Header/>
+//               <ChatPage />
+//               <Footer/>
+//             </PrivateRoute>
+//           }
+//         />
+//         <Route
 //           path={pagePaths.history}
 //           element={
 //             <PrivateRoute>
@@ -82,6 +93,7 @@ import SignIn from "./pages/sign-in";
 import Dashboard from "./pages/dashboard";
 import ChatPage from "./pages/chat";
 import PrivateRoute from "./components/private-route";
+import FloatingChatWidget from "./components/FloatingChatWidget"; // NEW
 import { pagePaths } from "./common/constants";
 import './App.css'
 import Header from "./components/header";
@@ -100,6 +112,7 @@ const App = () => {
               <Header/>
               <Home />
               <Footer/>
+              <FloatingChatWidget /> {/* NEW: Add widget */}
             </PrivateRoute>
           }
         />
@@ -110,6 +123,7 @@ const App = () => {
               <Header/>
               <Home />
               <Footer/>
+              <FloatingChatWidget /> {/* NEW: Add widget */}
             </PrivateRoute>
           }
         />
@@ -120,6 +134,7 @@ const App = () => {
               <Header/>
               <Dashboard />
               <Footer/>
+              <FloatingChatWidget /> {/* NEW: Add widget */}
             </PrivateRoute>
           }
         />
@@ -130,6 +145,7 @@ const App = () => {
               <Header/>
               <ChatPage />
               <Footer/>
+              <FloatingChatWidget /> {/* NEW: Add widget */}
             </PrivateRoute>
           }
         />
@@ -140,6 +156,7 @@ const App = () => {
                <Header/>
               <History />
               <Footer/>
+              <FloatingChatWidget /> {/* NEW: Add widget */}
             </PrivateRoute>
           }
         />
@@ -150,6 +167,7 @@ const App = () => {
                <Header/>
               <Feedback />
               <Footer/>
+              <FloatingChatWidget /> {/* NEW: Add widget */}
             </PrivateRoute>
           }
         />

@@ -1,56 +1,3 @@
-// export type CreateUserRequest = {
-//     user_id: string,
-//     username: string,
-//     contact_number: string,
-//     password: string
-//   }
-
-// export type LoginRequest = { username: string, password: string }
-
-// export type LoginResponse = { message: string, user_id: string }
-
-// export type TriggerCallRequest = {
-//         user_id: string,
-//         agent_id: string,
-//         name: string,
-//         contact_number: string,
-//         voice?: string
-// }
-
-// export type FeedbackRequest = {
-//     conversation_id: string,
-//     user_id: string,
-//     feedback_text: string,
-//     felt_natural: number,
-//     response_speed: number,
-//     interruptions: number,
-// }
-
-// // Dashboard types
-// export type DashboardMetrics = {
-//     total_calls: number,
-//     total_leads: number,
-//     conversion_rate: number,
-//     avg_call_duration: number
-// }
-
-// export type TrendData = {
-//     date: string,
-//     calls: number,
-//     leads: number,
-//     duration: number
-// }
-
-// export type DashboardResponse = {
-//     metrics: DashboardMetrics,
-//     call_trends: TrendData[],
-//     lead_trends: TrendData[],
-//     period: string
-// }
-
-
-
-// frontend/src/common/types.ts
 export type CreateUserRequest = {
     user_id: string,
     username: string,
@@ -121,4 +68,32 @@ export type DashboardResponse = {
     call_trends: TrendData[],
     lead_trends: TrendData[],
     period: string
+}
+
+// Add these to your existing types.ts file
+
+export type FloatingChatRequest = {
+    user_id: string;
+    customer_name: string;
+    agent_id?: string;
+}
+
+export type FloatingChatResponse = {
+    success: boolean;
+    message?: string;
+    session_id?: string;
+    room_id?: string;
+    participant_id?: string;
+    token?: string;
+}
+
+export type ChatHistoryItem = {
+    session_id: string;
+    customer_name: string;
+    agent_name: string;
+    started_at: string;
+    ended_at?: string;
+    status: string;
+    message_count: number;
+    last_message_preview?: string;
 }

@@ -197,6 +197,29 @@ class ChatResponse(BaseModel):
     room_id: Optional[str] = None
     chat_db_id: Optional[int] = None
 
+class FloatingChatResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    session_id: Optional[str] = None
+    room_id: Optional[str] = None
+    participant_id: Optional[str] = None
+    token: Optional[str] = None
+
+class ChatHistoryResponse(BaseModel):
+    session_id: str
+    customer_name: str
+    agent_name: str
+    started_at: datetime
+    ended_at: Optional[datetime]
+    status: str
+    message_count: int
+    last_message_preview: Optional[str]
+
+class FloatingChatRequest(BaseModel):
+    user_id: str
+    customer_name: str = Field(..., description="Customer name")
+    agent_id: str = Field(default="chat_agent_1", description="Agent ID for chat")
+
 # Dashboard Helper Functions
 def get_real_dashboard_metrics(db: Session, user_id: int, client: str, period: str) -> DashboardResponse:
     """Generate real dashboard metrics from database"""
@@ -1595,6 +1618,252 @@ async def get_all_sessions(user_id: int, client_name: str, db: Session = Depends
     except Exception as e:
         logger.error(f"Error fetching session history: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching session history: {str(e)}")
+
+#####################################
+@app.post("/api/floating-chat/start", response_model=FloatingChatResponse)
+async def start_floating_chat(request: FloatingChatRequest, db: Session = Depends(get_database)):
+    """
+    Start a new floating chat session with unique participant ID
+    """
+    try:
+        import uuid
+        from datetime import datetime
+        
+        # Generate unique identifiers
+        unique_uuid = str(uuid.uuid4())[:8]
+        current_date = datetime.now().strftime("%Y%m%d")
+        participant_id = f"{request.user_id}_{unique_uuid}_{current_date}"
+        session_id = f"chat_{participant_id}"
+        room_id = f"room_{session_id}"
+        
+        # Get or create chat agent model
+        model = db.query(models.Model).filter(models.Model.model_id == request.agent_id).first()
+        if not model:
+            # Create default chat model
+            model = models.Model(
+                model_id="chat_agent_1",
+                model_name="Chat Assistant",
+                client_name=client_name.upper()
+            )
+            db.add(model)
+            db.commit()
+            db.refresh(model)
+        
+        # Create LiveKit room and get token
+        from utils.call import run_livekit_dispatch
+        
+        metadata_ = {
+            "name": request.customer_name,
+            "modality": "chat",
+            "agent_name": model.model_name,
+            "user_id": request.user_id,
+            "session_id": session_id,
+            "participant_id": participant_id
+        }
+        
+        # Create LiveKit session
+        result = run_livekit_dispatch(
+            metadata=metadata_,
+            contact_number="chat_session",
+            agent_name=model.model_name,
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        # Create chat session record
+        chat_session = models.ChatSession(
+            session_id=session_id,
+            user_id=int(request.user_id),
+            room_id=room_id,
+            participant_id=participant_id,
+            agent_id=model.model_id,
+            agent_name=model.model_name,
+            customer_name=request.customer_name,
+            status="active",
+            session_metadata=metadata_
+        )
+        
+        db.add(chat_session)
+        db.commit()
+        db.refresh(chat_session)
+        
+        # Generate access token
+        token = api.AccessToken(
+            api_key=os.getenv("LIVEKIT_API_KEY", "APIoLr2sRCRJWY5"),
+            api_secret=os.getenv("LIVEKIT_API_SECRET", "yE3wUkoQxjWjhteMAed9ubm5mYg3iOfPT6qBQfffzgJC")
+        )
+        
+        token.with_identity(participant_id)
+        token.with_name(request.customer_name)
+        token.with_grants(api.VideoGrants(
+            room_join=True,
+            room=room_id,
+            can_publish=True,
+            can_subscribe=True,
+            can_publish_data=True
+        ))
+        token.with_ttl(timedelta(hours=2))
+        
+        jwt_token = token.to_jwt()
+        
+        return FloatingChatResponse(
+            success=True,
+            message="Chat session started successfully",
+            session_id=session_id,
+            room_id=room_id,
+            participant_id=participant_id,
+            token=jwt_token
+        )
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error starting floating chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Error starting chat: {str(e)}")
+
+@app.post("/api/floating-chat/end/{session_id}")
+async def end_floating_chat(session_id: str, db: Session = Depends(get_database)):
+    """
+    End a floating chat session
+    """
+    try:
+        # Find the chat session
+        chat_session = db.query(models.ChatSession).filter(
+            models.ChatSession.session_id == session_id
+        ).first()
+        
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+        
+        # Update session status
+        chat_session.status = "ended"
+        chat_session.ended_at = datetime.utcnow()
+        chat_session.is_active = False
+        
+        db.commit()
+        
+        return {"success": True, "message": "Chat session ended successfully"}
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error ending floating chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Error ending chat: {str(e)}")
+
+@app.post("/api/floating-chat/message")
+async def save_chat_message(fastapi_request: Request, db: Session = Depends(get_database)):
+    """
+    Save a chat message to the database
+    """
+    try:
+        request_body = await fastapi_request.json()
+        
+        # Generate unique message ID
+        import uuid
+        message_id = f"msg_{uuid.uuid4().hex[:12]}"
+        
+        # Create message record
+        chat_message = models.ChatMessage(
+            session_id=request_body["session_id"],
+            message_id=message_id,
+            message_type=request_body["type"],
+            content=request_body["content"],
+            sender=request_body["sender"],
+            message_metadata=request_body.get("metadata", {})
+        )
+        
+        db.add(chat_message)
+        
+        # Update session last activity
+        chat_session = db.query(models.ChatSession).filter(
+            models.ChatSession.session_id == request_body["session_id"]
+        ).first()
+        
+        if chat_session:
+            chat_session.last_activity_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {"success": True, "message_id": message_id}
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error saving chat message: {e}")
+        raise HTTPException(status_code=500, detail=f"Error saving message: {str(e)}")
+
+@app.get("/api/floating-chat/history/{user_id}")
+async def get_floating_chat_history(user_id: int, db: Session = Depends(get_database)):
+    """
+    Get chat history for floating chat widget
+    """
+    try:
+        # Get chat sessions for user
+        chat_sessions = db.query(models.ChatSession).filter(
+            models.ChatSession.user_id == user_id
+        ).order_by(models.ChatSession.started_at.desc()).all()
+        
+        history = []
+        for session in chat_sessions:
+            # Get message count
+            message_count = db.query(models.ChatMessage).filter(
+                models.ChatMessage.session_id == session.session_id
+            ).count()
+            
+            # Get last message preview
+            last_message = db.query(models.ChatMessage).filter(
+                models.ChatMessage.session_id == session.session_id,
+                models.ChatMessage.sender == "user"
+            ).order_by(models.ChatMessage.timestamp.desc()).first()
+            
+            last_message_preview = None
+            if last_message:
+                preview = last_message.content[:50]
+                last_message_preview = preview + "..." if len(last_message.content) > 50 else preview
+            
+            history.append(ChatHistoryResponse(
+                session_id=session.session_id,
+                customer_name=session.customer_name,
+                agent_name=session.agent_name,
+                started_at=session.started_at,
+                ended_at=session.ended_at,
+                status=session.status,
+                message_count=message_count,
+                last_message_preview=last_message_preview
+            ))
+        
+        return history
+        
+    except Exception as e:
+        logger.error(f"Error getting floating chat history: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting chat history: {str(e)}")
+
+@app.get("/api/floating-chat/messages/{session_id}")
+async def get_chat_messages(session_id: str, db: Session = Depends(get_database)):
+    """
+    Get all messages for a chat session
+    """
+    try:
+        messages = db.query(models.ChatMessage).filter(
+            models.ChatMessage.session_id == session_id
+        ).order_by(models.ChatMessage.timestamp.asc()).all()
+        
+        return [
+            {
+                "id": msg.message_id,
+                "type": msg.message_type,
+                "content": msg.content,
+                "sender": msg.sender,
+                "timestamp": msg.timestamp.isoformat(),
+                "metadata": msg.message_metadata
+            }
+            for msg in messages
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting chat messages: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting messages: {str(e)}")
+###################################
+
+
 
 if __name__ == "__main__":
     # Run the API with uvicorn

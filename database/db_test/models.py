@@ -21,6 +21,7 @@ class User(Base):
     # Relationships with cascade options
     feedback = relationship("Feedback", back_populates="user", cascade="all, delete-orphan")
     calls = relationship("Call", back_populates="user", cascade="all, delete-orphan")
+    chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
 
 
 class Model(Base):
@@ -32,6 +33,7 @@ class Model(Base):
     
     # Relationships with cascade options
     calls = relationship("Call", back_populates="model", cascade="all, delete-orphan")
+    chat_sessions = relationship("ChatSession", back_populates="model", cascade="all, delete-orphan")
 
 
 class Call(Base):
@@ -102,6 +104,68 @@ class Feedback(Base):
         return f"<Feedback(id={self.id}, user_id={self.user_id}, created_at='{self.created_at}')>"
 
 
+# Add these new models to your existing models.py file
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    session_id = Column(String(255), unique=True, index=True, nullable=False)  # Unique chat session ID
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=False)
+    room_id = Column(String(255), unique=True, index=True, nullable=False)  # LiveKit room ID
+    participant_id = Column(String(255), index=True, nullable=False)  # userId_uuid_date format
+    agent_id = Column(String(50), ForeignKey("models.model_id", ondelete="SET NULL"), nullable=False)
+    agent_name = Column(String(255), nullable=False)
+    customer_name = Column(String(255), nullable=False)
+    
+    # Session status
+    status = Column(String(50), default="active")  # active, ended, timeout
+    is_active = Column(Boolean, default=True)
+    
+    # Timestamps
+    started_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    ended_at = Column(DateTime, nullable=True)
+    last_activity_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    
+    # Session metadata
+    session_metadata = Column(JSON, nullable=True)  # Store additional session info
+    
+    # Relationships
+    user = relationship("User", back_populates="chat_sessions")
+    model = relationship("Model", back_populates="chat_sessions")
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<ChatSession(id={self.id}, session_id='{self.session_id}', status='{self.status}')>"
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    session_id = Column(String(255), ForeignKey("chat_sessions.session_id", ondelete="CASCADE"), nullable=False)
+    message_id = Column(String(255), unique=True, index=True, nullable=False)  # Unique message ID
+    
+    # Message content
+    message_type = Column(String(50), nullable=False)  # user_message, agent_response, tool_start, tool_success, tool_error, system
+    content = Column(Text, nullable=False)
+    sender = Column(String(50), nullable=False)  # user, agent, system
+    
+    # Timestamps
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    
+    # Message metadata
+    message_metadata = Column(JSON, nullable=True)  # Store additional message info
+    
+    # Relationships
+    session = relationship("ChatSession", back_populates="messages")
+
+    def __repr__(self):
+        return f"<ChatMessage(id={self.id}, message_id='{self.message_id}', sender='{self.sender}')>"
+
+
+
+
 # Optional: Add indexes for better performance
 from sqlalchemy import Index
 
@@ -113,3 +177,10 @@ Index('idx_calls_status', Call.call_status)
 Index('idx_calls_started_at', Call.call_started_at)
 Index('idx_feedback_user_id', Feedback.user_id)
 Index('idx_feedback_created_at', Feedback.created_at)
+Index('idx_chat_sessions_session_id', ChatSession.session_id)
+Index('idx_chat_sessions_user_id', ChatSession.user_id)
+Index('idx_chat_sessions_status', ChatSession.status)
+Index('idx_chat_sessions_started_at', ChatSession.started_at)
+Index('idx_chat_messages_session_id', ChatMessage.session_id)
+Index('idx_chat_messages_message_id', ChatMessage.message_id)
+Index('idx_chat_messages_timestamp', ChatMessage.timestamp)
