@@ -261,6 +261,24 @@ class BaseCustomerServiceAgent(ABC):
             logger.error(f"Booking error: {e}")
             return "Booking temporarily unavailable. Our team will contact you to schedule."
 
+    # async def record_session_end(self, end_reason: str):
+    #     """Record session end in database asynchronously with optimized queuing"""
+    #     if self.session_state.call_end_recorded or not self.session_state.call_started:
+    #         return
+            
+    #     try:
+    #         self.session_state.call_end_recorded = True
+    #         operation_id = await insert_call_end_async(
+    #             self.session_state.room_name,
+    #             end_reason
+    #         )
+    #         logger.info(f"Queued session end recording: {operation_id} - {end_reason}")
+    #     except Exception as e:
+    #         logger.error(f"Failed to queue session end recording: {e}")
+
+
+    # In agent/helper/agent_class.py - BaseCustomerServiceAgent class
+
     async def record_session_end(self, end_reason: str):
         """Record session end in database asynchronously with optimized queuing"""
         if self.session_state.call_end_recorded or not self.session_state.call_started:
@@ -268,14 +286,20 @@ class BaseCustomerServiceAgent(ABC):
             
         try:
             self.session_state.call_end_recorded = True
-            operation_id = await insert_call_end_async(
-                self.session_state.room_name,
-                end_reason
-            )
-            logger.info(f"Queued session end recording: {operation_id} - {end_reason}")
+            
+            # Only update call database for voice modality
+            if self.modality == "voice":
+                operation_id = await insert_call_end_async(
+                    self.session_state.room_name,
+                    end_reason
+                )
+                logger.info(f"Queued session end recording: {operation_id} - {end_reason}")
+            else:
+                # For chat, the ChatServiceAgent will handle chat-specific DB updates
+                logger.info(f"Chat session end recorded separately: {end_reason}")
+                
         except Exception as e:
             logger.error(f"Failed to queue session end recording: {e}")
-
 
 class VoiceServiceAgent(Agent, BaseCustomerServiceAgent):
     """Voice agent class extending both Agent and BaseCustomerServiceAgent"""
@@ -838,6 +862,26 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
             # Fallback
             await self.send_message("I'm sorry, I encountered an error. Please try again.", "text")
     
+    # async def end_session(self, ctx: RunContext):
+    #     """Implementation of abstract method to end chat session"""
+    #     participant_id = self.participant.identity if self.participant else 'unknown'
+    #     logger.info(f"Chat agent initiated session end for {participant_id}")
+
+    #     # Unregister from session manager
+    #     if self.chat_session_id:
+    #         from .chat_session_manager import chat_timeout_manager
+    #         chat_timeout_manager.unregister_session(self.chat_session_id)
+
+    #     await self.record_session_end("Chat ended")
+        
+    #     # Send goodbye message
+    #     await self.send_message("Thank you for chatting with our customer service. Have a great day!", "text")
+    #     await asyncio.sleep(1)  # Give time for message to send
+        
+    #     await hangup()
+    #     return "Noted"
+
+    # In agent_class.py - ChatServiceAgent
     async def end_session(self, ctx: RunContext):
         """Implementation of abstract method to end chat session"""
         participant_id = self.participant.identity if self.participant else 'unknown'
@@ -854,8 +898,12 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
         await self.send_message("Thank you for chatting with our customer service. Have a great day!", "text")
         await asyncio.sleep(1)  # Give time for message to send
         
-        await hangup()
+        # PROPERLY DISCONNECT THE ROOM
+        if self.room:
+            await self.room.disconnect()
+        
         return "Noted"
+
 
     @function_tool
     async def end_chat_session(self, ctx: RunContext):
@@ -912,6 +960,35 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
             logger.error(f"Error processing data packet: {e}")
             print(f"❌ Error processing data packet: {e}")  # Debug logging
 
+    # async def record_session_end(self, end_reason: str):
+    #     """Record session end in database - use chat tables for chat sessions"""
+    #     if self.session_state.call_end_recorded or not self.session_state.call_started:
+    #         return
+            
+    #     try:
+    #         self.session_state.call_end_recorded = True
+            
+    #         if self.modality == "chat" and self.chat_session_id:
+    #             # Use chat-specific database table
+    #             from .chat_database_helpers import insert_chat_session_end
+    #             success = await insert_chat_session_end(self.chat_session_id, end_reason)
+    #             if success:
+    #                 logger.info(f"Recorded chat session end: {self.chat_session_id} - {end_reason}")
+    #             else:
+    #                 logger.error(f"Failed to record chat session end: {self.chat_session_id}")
+    #         else:
+    #             # Use call database for voice sessions
+    #             operation_id = await insert_call_end_async(
+    #                 self.session_state.room_name,
+    #                 end_reason
+    #             )
+    #             logger.info(f"Queued session end recording: {operation_id} - {end_reason}")
+    #     except Exception as e:
+    #         logger.error(f"Failed to record session end: {e}")
+
+
+    # In agent/helper/agent_class.py - ChatServiceAgent class
+
     async def record_session_end(self, end_reason: str):
         """Record session end in database - use chat tables for chat sessions"""
         if self.session_state.call_end_recorded or not self.session_state.call_started:
@@ -921,7 +998,7 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
             self.session_state.call_end_recorded = True
             
             if self.modality == "chat" and self.chat_session_id:
-                # Use chat-specific database table
+                # Use chat-specific database table ONLY
                 from .chat_database_helpers import insert_chat_session_end
                 success = await insert_chat_session_end(self.chat_session_id, end_reason)
                 if success:
@@ -929,7 +1006,7 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
                 else:
                     logger.error(f"Failed to record chat session end: {self.chat_session_id}")
             else:
-                # Use call database for voice sessions
+                # Use call database for voice sessions ONLY
                 operation_id = await insert_call_end_async(
                     self.session_state.room_name,
                     end_reason
@@ -937,7 +1014,6 @@ class ChatServiceAgent(BaseCustomerServiceAgent):
                 logger.info(f"Queued session end recording: {operation_id} - {end_reason}")
         except Exception as e:
             logger.error(f"Failed to record session end: {e}")
-
 
 
 

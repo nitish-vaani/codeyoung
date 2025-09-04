@@ -601,14 +601,62 @@ const FloatingChatWidget: React.FC = () => {
         showToast('success', 'Chat Started', 'You can now start messaging');
       });
 
-      newRoom.on(RoomEvent.Disconnected, (reason) => {
-        console.log('❌ Disconnected from chat room:', reason);
-        setIsConnected(false);
-        setIsConnecting(false);
-        addMessage('system', 'Chat session ended', 'System');
-      });
+      // newRoom.on(RoomEvent.Disconnected, (reason) => {
+      //   console.log('❌ Disconnected from chat room:', reason);
+      //   setIsConnected(false);
+      //   setIsConnecting(false);
+      //   addMessage('system', 'Chat session ended', 'System');
+      // });
+
+      // In FloatingChatWidget/index.tsx
+    newRoom.on(RoomEvent.Disconnected, (reason) => {
+      console.log('❌ Disconnected from chat room:', reason);
+      setIsConnected(false);
+      setIsConnecting(false);
+      addMessage('system', 'Chat session ended', 'System');
+      
+      // Auto-close widget if disconnected due to timeout
+      if (reason && reason.toString().includes('timeout')) {
+        setTimeout(() => {
+          setIsOpen(false);
+        }, 3000);
+      }
+    });
+
+
 
       // Handle incoming messages from agent (same logic as chat page)
+      // newRoom.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
+      //   try {
+      //     const decoder = new TextDecoder();
+      //     const message = JSON.parse(decoder.decode(payload));
+          
+      //     console.log('📨 Received message:', message);
+          
+      //     if (message.sender === 'agent') {
+      //       setIsAgentTyping(false);
+            
+      //       if ((message.type === 'text' || message.type === 'text_chunk') && message.content && message.content.trim() !== '') {
+      //         console.log('✅ Adding message to UI:', message.content);
+      //         addMessage('agent', message.content, 'Agent');
+      //       } else if (message.type === 'text_complete') {
+      //         console.log('🔄 Ignoring text_complete');
+      //         // Do nothing
+      //       } else if (message.type === 'tool_start') {
+      //         setIsAgentTyping(true);
+      //         addMessage('system', `🔧 ${message.content}`, 'System');
+      //       } else if (message.type === 'tool_success') {
+      //         addMessage('system', `✅ ${message.content}`, 'System');
+      //       } else if (message.type === 'tool_error') {
+      //         addMessage('system', `❌ ${message.content}`, 'System');
+      //       }
+      //     }
+      //   } catch (error) {
+      //     console.error('❌ Error parsing message:', error);
+      //   }
+      // });
+
+      // In FloatingChatWidget/index.tsx
       newRoom.on(RoomEvent.DataReceived, (payload: Uint8Array) => {
         try {
           const decoder = new TextDecoder();
@@ -619,25 +667,27 @@ const FloatingChatWidget: React.FC = () => {
           if (message.sender === 'agent') {
             setIsAgentTyping(false);
             
+            // Handle system disconnect messages
+            if (message.type === 'system' && 
+                message.content.includes('session ended due to inactivity')) {
+              // Force disconnect on frontend
+              setTimeout(() => {
+                endChatSession();
+              }, 2000); // Give time to show the message
+            }
+            
             if ((message.type === 'text' || message.type === 'text_chunk') && message.content && message.content.trim() !== '') {
               console.log('✅ Adding message to UI:', message.content);
               addMessage('agent', message.content, 'Agent');
-            } else if (message.type === 'text_complete') {
-              console.log('🔄 Ignoring text_complete');
-              // Do nothing
-            } else if (message.type === 'tool_start') {
-              setIsAgentTyping(true);
-              addMessage('system', `🔧 ${message.content}`, 'System');
-            } else if (message.type === 'tool_success') {
-              addMessage('system', `✅ ${message.content}`, 'System');
-            } else if (message.type === 'tool_error') {
-              addMessage('system', `❌ ${message.content}`, 'System');
             }
+            // ... rest of message handling
           }
         } catch (error) {
           console.error('❌ Error parsing message:', error);
         }
       });
+
+
 
       // Reconnection handlers
       newRoom.on(RoomEvent.Reconnecting, () => {

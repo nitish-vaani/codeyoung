@@ -111,6 +111,32 @@ class ChatSessionTimeoutManager:
         except Exception as e:
             logger.error(f"Error sending timeout warning to session {session_id}: {e}")
     
+    # async def _timeout_session(self, session_id: str, reason: str):
+    #     """End session due to timeout (like hangup in idle call watcher)"""
+    #     session_info = self.active_sessions.get(session_id)
+    #     if not session_info:
+    #         return
+        
+    #     try:
+    #         agent = session_info.get("agent_instance")
+    #         if agent:
+    #             # Send final message
+    #             if hasattr(agent, 'send_message'):
+    #                 await agent.send_message("Chat session ended due to inactivity. Thank you!", "system")
+    #                 await asyncio.sleep(1)  # Let message send
+                
+    #             # End the session
+    #             if hasattr(agent, 'end_session') and hasattr(agent, 'session'):
+    #                 await agent.end_session(agent.session)
+            
+    #         # Remove from tracking
+    #         self.unregister_session(session_id)
+    #         logger.info(f"Session {session_id} ended: {reason}")
+            
+    #     except Exception as e:
+    #         logger.error(f"Error ending session {session_id}: {e}")
+
+    # In chat_session_manager.py
     async def _timeout_session(self, session_id: str, reason: str):
         """End session due to timeout (like hangup in idle call watcher)"""
         session_info = self.active_sessions.get(session_id)
@@ -125,9 +151,10 @@ class ChatSessionTimeoutManager:
                     await agent.send_message("Chat session ended due to inactivity. Thank you!", "system")
                     await asyncio.sleep(1)  # Let message send
                 
-                # End the session
-                if hasattr(agent, 'end_session') and hasattr(agent, 'session'):
-                    await agent.end_session(agent.session)
+                # FORCE DISCONNECT THE ROOM
+                if hasattr(agent, 'room') and agent.room:
+                    await agent.room.disconnect()
+                    logger.info(f"Disconnected room for session {session_id}")
             
             # Remove from tracking
             self.unregister_session(session_id)
