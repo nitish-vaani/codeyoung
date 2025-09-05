@@ -7,6 +7,6 @@ export const pagePaths = {
     history:'/history',
     feedback:'/feedback',
     dashboard:'/dashboard',
-    chat:'/chat'
+    // chat:'/chat'
 
 }

@@ -43,3 +43,6 @@ session_management:
   
   # Maximum concurrent chat sessions per user
   max_concurrent_sessions: 3
+
+
+telephony: twilio
