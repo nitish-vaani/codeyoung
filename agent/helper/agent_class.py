@@ -51,6 +51,8 @@ class BaseCustomerServiceAgent(ABC):
         _prompt = _prompt.replace("{{phone_string}}", convert_number_to_conversational(contact_info.get("phone", "unknown")))
         _prompt = _prompt.replace("{{phone_numeric}}", str(contact_info.get("phone", "unknown")))
         _prompt = _prompt.replace("{{current_time}}", datetime.now().strftime("%Y-%m-%d %H:%M"))
+        _prompt = _prompt.replace("{{name}}", str(contact_info.get("name", "N/A")))
+
         
         self._instructions = _prompt
         self.agent_name = agent_name

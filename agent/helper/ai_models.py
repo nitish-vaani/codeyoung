@@ -82,7 +82,7 @@ def get_tts(config: Dict[str, Any], voice_config: Dict[str, Any] = None):
         return cartesia.TTS(
             model="sonic-2-2025-03-07",
             voice=get_voice(which_voice),
-            speed=0,
+            speed=-0.25,
             language="hi",
             emotion=["positivity:highest", "curiosity:highest"],
         )
@@ -94,24 +94,27 @@ def get_tts(config: Dict[str, Any], voice_config: Dict[str, Any] = None):
         
         #Male Voices
         eric = "9T9vSqRrPPxIs5wpyZfK"
+        indian_male_1 = "3gsg3cxXyFLcGIfNbM6C"
+        american_male_1 = "MXGyTMlsvQgQ4BL0emIa"
+        american_male_2 = "scOwDtmlUjD3prqpp97I"
 
         #Female Voices
-
-
-
-
+        indian_female_1 = "MwUMLXurEzSN7bIfIdXF"
+        american_female_1 = "56AoDkrOh6qfVPDXZ7Pt"
+        american_female_2 = "NHRgOEwqx5WZNClv5sat"
+        monika = "2bNrEsM0omyhLiEyOwqY"
 
         def get_voice(voice_name: str):
             voices = {
-                "English US(M)-1": david,
-                "English US(M)-2": help_desk,
-                "English US(M)-3": customer_service,
-                "English Indian(M)-1": devansh,
-                "English US(F)-1": sarah,
-                "English US(F)-2": savannah,
+                "English US(M)-1": american_male_1,
+                "English US(M)-2": american_male_2,
+                "English US(M)-3": eric,
+                "English Indian(M)-1": indian_male_1,
+                "English US(F)-1": american_female_1,
+                "English US(F)-2": american_female_2,
                 "English US(F)-2": customer_support_lady,
-                "English Indian(F)-1": janvi,
-                "Default": help_desk,
+                "English Indian(F)-1": indian_female_1,
+                "Default": monika,
             }
             return voices.get(voice_name.lower(), devansh)
 

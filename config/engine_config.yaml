@@ -19,19 +19,19 @@ TTS: cartesia # elevenlabs/cartesia/aws/neuphonic - azure/playai is not working 
 
 chat_session_timeouts:
   # Time in seconds after which an inactive chat session is considered dormant
-  inactivity_timeout: 10  # 30 minutes
+  inactivity_timeout: 300  # 30 minutes
   
   # Time in seconds after which a dormant session will be automatically ended
-  dormant_session_cleanup: 20  # 60 minutes
+  dormant_session_cleanup: 420  # 60 minutes
   
   # How often to check for dormant sessions (in seconds)
-  cleanup_interval: 5  # 5 minutes
+  cleanup_interval: 120  # 5 minutes
   
   # Maximum duration for a single chat session (in seconds)
-  max_session_duration: 300  # 2 hours
+  max_session_duration: 600  # 2 hours
   
   # Warning message time before session timeout (in seconds)
-  warning_before_timeout: 8  # 5 minutes before timeout
+  warning_before_timeout: 240  # 5 minutes before timeout
 
 # Session management
 session_management:
