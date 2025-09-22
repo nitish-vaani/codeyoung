@@ -45,7 +45,7 @@ EARKART_INCOMING_ID = int(os.getenv("EARKART_INCOMING_ID", 2))
 PLIVO_AUTH_ID = os.environ.get("PLIVO_AUTH_ID")
 PLIVO_AUTH_TOKEN = os.environ.get("PLIVO_AUTH_TOKEN")
 PLIVO_FROM_NUMBER = os.environ.get("PLIVO_FROM_NUMBER", "+918035315890")
-BASE_URL = os.environ.get("BASE_URL", "https://earkart-bk.vaaniresearch.com")
+BASE_URL = os.environ.get("BASE_URL", "https://if-bk.vaaniresearch.com")
 
 # Database setup
 Base.metadata.create_all(bind=engine)
@@ -262,6 +262,11 @@ async def create_dispatch(fastapi_request: Request, db: Session = Depends(get_da
     try:
         request_body = await fastapi_request.json()
         print(f"request_body: {request_body}")
+
+        if request_body['id'] == "":
+            pass
+        else:
+            return "Not a valid user_id"
 
         # Get agent model from DB
         model = db.query(models.Model).filter(models.Model.model_id == request_body['agent_id']).first()

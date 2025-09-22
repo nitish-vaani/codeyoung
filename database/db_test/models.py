@@ -17,6 +17,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(255), unique=True, index=True, nullable=True)  # Made nullable for default user
     password = Column(String(255), nullable=True)  # Made nullable for default user
+    # user_uuid = Column(String)
     
     # Relationships with cascade options
     feedback = relationship("Feedback", back_populates="user", cascade="all, delete-orphan")

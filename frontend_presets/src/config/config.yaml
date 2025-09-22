@@ -1,0 +1,208 @@
+# # Frontend Feature Configuration
+# # Available presets: basic, call-only, chat-only, full
+
+# # Current active preset
+# preset: "full"
+
+# # Page Level Configuration
+# pages:
+#   signin: true
+#   dashboard: true
+#   call_test: true  # Home page with call testing
+#   call_history: true
+#   chat_history: true
+#   feedback: true
+
+# # Component Level Configuration
+# components:
+#   # Header/Navigation
+#   header:
+#     dashboard_menu: true
+#     call_test_menu: true
+#     chat_test_menu: true
+#     call_history_menu: true
+#     feedback_menu: true
+#     user_avatar_dropdown: true
+
+#   # Call Test Page Components
+#   call_test:
+#     tryout_component: true  # Features list component
+#     talk_to_vaani_component: true
+    
+#     # Talk to Vaani Component Features
+#     talk_to_vaani:
+#       name_field: true
+#       country_code_selector: true
+#       phone_number_field: true
+#       voice_selection: true  # Male/Female avatars
+#       voice_options_dropdown: true  # Dropdown with voice variants
+#       use_case_dropdown: true
+#       trigger_call_button: true
+
+#   # Call History Page Components
+#   call_history:
+#     view_mode_toggle: true  # calls/chats/all toggle
+#     filters_section: true
+#     search_functionality: true
+#     date_range_filter: true
+#     status_filter: true
+#     direction_filter: true
+#     selection_checkboxes: true
+#     bulk_operations: true
+#     csv_download: true
+    
+#     # Call Details Sidebar Features
+#     call_details_sidebar:
+#       audio_recording: true
+#       transcript_section: true
+#       summary_section: true
+#       conversation_evaluation: true
+#       entity_extraction: true
+
+#   # Chat History Page Components (when chat is enabled)
+#   chat_history:
+#     filters_section: true
+#     search_functionality: true
+#     date_range_filter: true
+#     selection_checkboxes: true
+#     csv_download: true
+    
+#     # Chat Details Sidebar Features
+#     chat_details_sidebar:
+#       chat_info_section: true
+#       transcript_section: true
+#       summary_section: true
+
+#   # Dashboard Components
+#   dashboard:
+#     call_metrics: true
+#     chat_metrics: true
+#     period_toggle: true  # 1 day / 7 days
+#     metrics_cards: true
+#     call_trends_chart: true
+#     chat_trends_chart: true
+#     duration_chart: true
+
+#   # Feedback Page Components
+#   feedback:
+#     rating_sliders: true
+#     feedback_text_area: true
+#     submit_button: true
+
+#   # Global Components
+#   global:
+#     floating_chat_widget: true
+#     footer: true
+
+# # API Endpoints Configuration (optional - for future use)
+# api:
+#   call_endpoints: true
+#   chat_endpoints: true
+#   dashboard_endpoints: true
+#   feedback_endpoints: true
+
+# # Build Configuration
+# build:
+#   tree_shake_disabled_features: true
+#   remove_unused_routes: true
+#   conditional_imports: true
+
+
+
+# Frontend Feature Configuration
+# Available presets: basic, call-only, chat-only, full
+
+# Current active preset - change this to switch presets
+preset: "full"
+
+# When preset is set to "custom", modify the values below
+# Otherwise, the preset configuration will override these values
+
+pages:
+  signin: true
+  dashboard: true
+  call_test: true
+  call_history: true
+  chat_history: true
+  feedback: true
+
+components:
+  header:
+    dashboard_menu: true
+    call_test_menu: true
+    chat_test_menu: false
+    call_history_menu: true
+    feedback_menu: true
+    user_avatar_dropdown: true
+
+  call_test:
+    tryout_component: true
+    talk_to_vaani_component: true
+    
+    talk_to_vaani:
+      name_field: true
+      country_code_selector: true
+      phone_number_field: true
+      voice_selection: true
+      voice_options_dropdown: true
+      use_case_dropdown: true
+      trigger_call_button: true
+
+  call_history:
+    view_mode_toggle: true
+    filters_section: true
+    search_functionality: true
+    date_range_filter: true
+    status_filter: true
+    direction_filter: true
+    selection_checkboxes: true
+    bulk_operations: true
+    csv_download: true
+    
+    call_details_sidebar:
+      audio_recording: true
+      transcript_section: true
+      summary_section: true
+      conversation_evaluation: true
+      entity_extraction: true
+
+  chat_history:
+    filters_section: true
+    search_functionality: true
+    date_range_filter: true
+    selection_checkboxes: true
+    csv_download: true
+    
+    chat_details_sidebar:
+      chat_info_section: true
+      transcript_section: true
+      summary_section: true
+
+  dashboard:
+    call_metrics: true
+    chat_metrics: true
+    period_toggle: true
+    metrics_cards: true
+    call_trends_chart: true
+    chat_trends_chart: true
+    duration_chart: true
+
+  feedback:
+    rating_sliders: true
+    feedback_text_area: true
+    submit_button: true
+
+  global:
+    floating_chat_widget: true
+    footer: true
+
+api:
+  call_endpoints: true
+  chat_endpoints: true
+  dashboard_endpoints: true
+  feedback_endpoints: true
+
+build:
+  tree_shake_disabled_features: true
+  remove_unused_routes: true
+  conditional_imports: true
