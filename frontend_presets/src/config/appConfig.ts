@@ -4,7 +4,7 @@
 export type PresetName = 'basic' | 'call-only' | 'chat-only' | 'full';
 
 // ⭐ CHANGE THIS LINE TO SWITCH PRESETS ⭐
-const CURRENT_PRESET: PresetName = 'full';
+const CURRENT_PRESET: PresetName = 'chat-only';
 
 // Configuration interface
 interface AppConfig {
